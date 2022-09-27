@@ -192,10 +192,6 @@ game.subscribeToEvent("playerChats", async (data, context) => {
 });
 
 // If a player moves while in ghost mode and near a lit fireplace, they will be teleported.
-// If the fireplace already has a target set, it will be used.
-// If not, a random fireplace anywhere in the entire server will be chosen.
-// When teleported to fireplace, it will be lit if it wasn't already, its expiration will also be reset.
-// I think I use game.teleport()
 game.subscribeToEvent("playerMoves", async (data, context) => {
   if (!game.isPlayerInPrivateSpace(context.player, context.player.map, "Floo Network")) {
     return;
@@ -257,9 +253,8 @@ game.subscribeToEvent("playerMoves", async (data, context) => {
       [target.obj.key]: target.obj,
     }, true);
 
-    await game.teleport(state.targetMapId, x, y, context.player.id);
+    await game.teleport(state.targetMapId, x, y, context.playerId);
 
     return;
   }
 });
- 
