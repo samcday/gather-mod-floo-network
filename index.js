@@ -20,12 +20,22 @@ const game = new Game(process.env.GATHER_SPACE_ID, () => Promise.resolve({ apiKe
     // Lit fireplaces need special care when they exist.
     for (const mapId of game.getKnownCompletedMaps()) {
       const litFireplaces = game.filterObjectsInMap(mapId, (obj) => obj.templateId && obj.templateId.startsWith("Fireplacelit -") && obj._tags.includes("floo"));
-      let totalLit = litFireplaces.length;
       for (const obj of litFireplaces) {
         const state = JSON.parse(obj.customState);
         // Lit fireplaces will self-extinguish after 10sec of inactivity.
-        // ... Except keep at least one fireplace lit. Public game client acts strangely when a private area disappears completely.
-        if (totalLit > 1 && Date.now() - 10000 > state.lastActivity) {
+        // Except if they have a player standing near them.
+        let found = false;
+        for (const player of game.getPlayersInMap(mapId)) {
+          if (distance(obj, player) <= 1) {
+            found = true;
+            break;
+          }
+        }
+        if (found) {
+          continue;
+        }
+
+        if (Date.now() - 10000 > state.lastActivity) {
           console.log('unlighting fireplace', obj);
           obj.templateId = 'Fireplace - wMX-BazJtzaaBYUQoEczy';
           obj._name = 'Fireplace (unlit)';
@@ -39,7 +49,6 @@ const game = new Game(process.env.GATHER_SPACE_ID, () => Promise.resolve({ apiKe
           game.setMapObjects(mapId, {
             [obj.key]: obj,
           }, true);
-          totalLit -= 1;
         }
       }
       await checkFireplaceSpaces(mapId);
@@ -73,6 +82,9 @@ async function checkFireplaceSpaces(mapId) {
     }
     return false;
   });
+  if (areaPos.length === 0) {
+    areaPos.push({x: 0, y: 0});
+  }
   for (const {x, y} of areaPos) {
     newMapSpaces.push({spaceId: 'Floo Network', x, y, colored: false});
   }
